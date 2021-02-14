@@ -49,14 +49,7 @@ def callbackHandler(midicc_obj):
     """
     This is the method that will be invoked when the "do it" button is pressed.
     """
-
-    # Since this is just an example, we will just print out the selected item,
-    # instead of actually doing something with it.
-    #
-    # print(f"callbackHandler: got object of type {type(midicc_obj)}")
-    # print(f"callbackHandler: {midicc_obj}") # renders with 'str()'
     print(f"callbackHandler: '{midicc_obj.kitName}', CC {midicc_obj.controlCode}")
-
     changeProgram(midicc_obj.controlCode)
 
 
