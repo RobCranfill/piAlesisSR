@@ -13,7 +13,7 @@ This led me to the solution of a Raspberry Pi running the ALSA 'aconnect' util, 
 
 ----
 Notes:
- * This requires the 'mido' library for MIDI access.
+ * This requires the 'mido' library for MIDI access. (`pip3 install mido`)
  * It also requires some MIDI hardware and any drivers required for that.
  * Don't forget to do something like
   ``export PYTHONPATH=../PiLCDmenu/``.
