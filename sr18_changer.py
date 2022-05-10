@@ -5,12 +5,14 @@ from lcd_menu import LCDMenu
 from midi_cc import MidiCC
 import mido
 import threading
+import os
+import signal
 import sys
 
 
 DM_MIDI_CHANNEL = 10-1 # The MIDI world calls it channel 10, yet we need to use the value 9 ! :-(
 
-_MIDIport = None
+_MIDIport = None # global midi output port
 
 
 class LCDAction():
@@ -52,7 +54,7 @@ def init_midi():
         _MIDIport = mido.open_output('MidiSport 1x1 MIDI 1')
         print("Opened MIDI port OK")
     except: 
-        print("No MIDI port? Continuing....")
+        print("No MIDI port 'MidiSport 1x1 MIDI 1'? Continuing....")
 
 
 def changeProgram(program):
@@ -72,9 +74,7 @@ def loadFile(filename):
     Load the indicated JSON file into a list of lists of MIDI objects.
     """
     # print(f"Loading menu data from '{filename}'....")
-    f = open(filename, "r")
-    fcontents = f.read()
-    return MidiCC.decodeFromJSON(fcontents)
+    return MidiCC.decodeFromJSON(open(filename, "r").read())
 
 
 def callbackHandler(menu_obj):
@@ -82,12 +82,12 @@ def callbackHandler(menu_obj):
     This is the method that will be invoked when the "do it" button is pressed.
     """
 
-    if (isinstance(menu_obj, LCDAction)):
+    if isinstance(menu_obj, LCDAction):
         if (menu_obj.magicActionThing == LCDAction.ACTION_EXIT):
             print("Exiting....")
             tidyUp()
             sys.exit(LCDAction.ACTION_EXIT)
-        elif (menu_obj.magicActionThing == LCDAction.ACTION_SHUT_DOWN):
+        elif menu_obj.magicActionThing == LCDAction.ACTION_SHUT_DOWN:
             print("Halting system....")
             tidyUp()
             os.system('sudo shutdown -h now')
@@ -98,8 +98,15 @@ def callbackHandler(menu_obj):
     # Must be a MIDI thing.
 
     print(f"callbackHandler: '{menu_obj.kitName}', CC {menu_obj.controlCode}")
-    if (_MIDIport):
+    if  isinstance(_MIDIport, mido.PortMidi):
         changeProgram(menu_obj.controlCode)
+
+
+# Handler for 'die' signal.
+def gotSIGWhatever(foo, fum):
+    # If we get the signal, create an EXIT action.
+    print("Got SIGUSR1 - exiting....")
+    callbackHandler(LCDAction("mox nix", LCDAction.ACTION_EXIT))
 
 
 # Main code
@@ -117,6 +124,11 @@ if __name__ == "__main__":
         _menu = LCDMenu(menuData, callbackHandler, buttonsOnRight=True)
         init_midi()
 
+        # When running headless, we can send this signal to stop the app.
+        # We are supposed to be able to send a SIGINT to get the same thing as ctrl-C,
+        # but it doesn't seem to work. SIGUSR1 works.
+        signal.signal(signal.SIGUSR1, gotSIGWhatever)
+        
         # We create and wait on this event, but it never comes. How sad.
         # (This program is interrupt driven.)
         #
