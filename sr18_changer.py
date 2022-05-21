@@ -1,13 +1,14 @@
 #!/bin/python3
 # Micro MIDI controller for the SR16/18
 
-from lcd_menu import LCDMenu
+from lcd_menu import LCDMenu, menuPage, menuData
 from midi_cc import MidiCC
+
 import mido
-import threading
 import os
 import signal
 import sys
+import threading
 
 
 DM_MIDI_CHANNEL = 10-1 # The MIDI world calls it channel 10, yet we need to use the value 9 ! :-(
@@ -71,10 +72,18 @@ def changeProgram(program):
 
 def loadFile(filename):
     """
-    Load the indicated JSON file into a list of lists of MIDI objects.
+    Load the indicated JSON file into a list menu pages; this can be added to by the caller.
     """
     # print(f"Loading menu data from '{filename}'....")
-    return MidiCC.decodeFromJSON(open(filename, "r").read())
+    oldstyle = MidiCC.decodeFromJSON(open(filename, "r").read())
+
+    pages = []
+    for page in oldstyle:
+        name = page[MidiCC.SET_NAME]
+        list = page[MidiCC.CC_LIST_NAME]
+        print(f"name '{name}'; list: {list}")
+        pages.append(menuPage(name, list))
+    return pages
 
 
 def callbackHandler(menu_obj):
@@ -114,14 +123,16 @@ def gotSIGWhatever(foo, fum):
 if __name__ == "__main__":
 
     try:
-        menuData = loadFile("sr18_small_example.json")
+        pageList = loadFile("sr18_small_example.json")
 
-        # ...and this adds one item to the last menu page: shut down the machine.
-        menuData.append([LCDAction("Exit app", LCDAction.ACTION_EXIT),
-                         LCDAction("Shut down Pi",  LCDAction.ACTION_SHUT_DOWN)])
-        # print("Menu data:\n", menuData)
+        # # ...and this adds one item to the last menu page: shut down the machine.
+        # pageList.append([LCDAction("Exit app", LCDAction.ACTION_EXIT),
+        #                  LCDAction("Shut down Pi",  LCDAction.ACTION_SHUT_DOWN)])
+        # # print("Menu data:\n", menuData)
 
-        _menu = LCDMenu(menuData, callbackHandler, buttonsOnRight=True)
+        menudata = menuData(pageList)
+
+        _menu = LCDMenu(menudata, callbackHandler, buttonsOnRight=True)
         init_midi()
 
         # When running headless, we can send this signal to stop the app.

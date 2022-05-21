@@ -4,15 +4,18 @@
 import json
 
 
-# dictionary keys
-SET_NAME     = "setname"
-CC_LIST_NAME = "ccdata"
 
 
 class MidiCC:
     """
     Being a thing what encapsulates the name of a drum kit, and the corresponding MIDI Control Code.
+    Also has a utility method to parse this data from a JSON file. (Said file contains other crap, too....)
     """
+
+    # dictionary keys
+    SET_NAME     = "setname"
+    CC_LIST_NAME = "ccdata"
+
     def __init__(self, kitname, controlcode):
         self.kitName = kitname
         self.controlCode = controlcode
@@ -36,12 +39,12 @@ class MidiCC:
         result = []
         for pagedata in json.loads(s): # "pagedata" is a string followed by a list of CC objects.
             resultdict = {}
-            resultdict[SET_NAME] = pagedata[0]
+            resultdict[MidiCC.SET_NAME] = pagedata[0]
             cclist = pagedata[1]
             ccresult = []
             for k in cclist:
                 ccresult.append(MidiCC(k[0], k[1]))
-            resultdict[CC_LIST_NAME] = ccresult
+            resultdict[MidiCC.CC_LIST_NAME] = ccresult
             result.append(resultdict)
         return result
 
@@ -62,7 +65,7 @@ class MidiCC:
 # ]
 #
 if __name__ =="__main__":
-    filename = "sr18_small_example-2.json"
+    filename = "sr18_small_example.json"
     print(f"Testing parsing JSON file '{filename}'....")
     f = open(filename, "r")
     fcontents = f.read()
@@ -70,5 +73,4 @@ if __name__ =="__main__":
     # print(f" json: {json.loads(fcontents)}\n")
     newlist = MidiCC.decodeFromJSON(fcontents)
 
-    print("Parsed:")
-    print(newlist)
+    print("Parsed:", newlist)
