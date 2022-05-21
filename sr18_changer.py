@@ -1,5 +1,7 @@
 #!/bin/python3
 # Micro MIDI controller for the SR16/18
+# Uses my LCDMenu code for the display.
+# (c)2022 robcranfill@robcranfill.net
 
 from lcd_menu import LCDMenu, menuPage, menuData
 from midi_cc import MidiCC
@@ -12,6 +14,7 @@ import threading
 
 
 DM_MIDI_CHANNEL = 10-1 # The MIDI world calls it channel 10, yet we need to use the value 9 ! :-(
+MIDI_INTERFACE_NAME = "MidiSport 1x1 MIDI 1"
 
 _MIDIport = None # global midi output port
 
@@ -52,10 +55,10 @@ def init_midi():
     global _MIDIport
 
     try:
-        _MIDIport = mido.open_output('MidiSport 1x1 MIDI 1')
+        _MIDIport = mido.open_output(MIDI_INTERFACE_NAME)
         print("Opened MIDI port OK")
     except: 
-        print("No MIDI port 'MidiSport 1x1 MIDI 1'? Continuing....")
+        print(f"No MIDI port '{MIDI_INTERFACE_NAME}'? Continuing....")
 
 
 def changeProgram(program):
@@ -81,7 +84,6 @@ def loadFile(filename):
     for page in oldstyle:
         name = page[MidiCC.SET_NAME]
         list = page[MidiCC.CC_LIST_NAME]
-        print(f"name '{name}'; list: {list}")
         pages.append(menuPage(name, list))
     return pages
 
@@ -104,10 +106,9 @@ def callbackHandler(menu_obj):
             print("Unknown action: ", menu_obj) # shouldn't happen
         return
     
-    # Must be a MIDI thing.
-
+    # Must be a MIDI object; send it.
     print(f"callbackHandler: '{menu_obj.kitName}', CC {menu_obj.controlCode}")
-    if  isinstance(_MIDIport, mido.PortMidi):
+    if  _MIDIport:
         changeProgram(menu_obj.controlCode)
 
 
@@ -123,12 +124,15 @@ def gotSIGWhatever(foo, fum):
 if __name__ == "__main__":
 
     try:
+
+        # Load the MIDI-oriented pages.
         pageList = loadFile("sr18_small_example.json")
 
-        # # ...and this adds one item to the last menu page: shut down the machine.
-        # pageList.append([LCDAction("Exit app", LCDAction.ACTION_EXIT),
-        #                  LCDAction("Shut down Pi",  LCDAction.ACTION_SHUT_DOWN)])
-        # # print("Menu data:\n", menuData)
+        # A final utility page to control the app.
+        lastPage = menuPage("Utils", 
+            [LCDAction("Exit menu app", LCDAction.ACTION_EXIT),
+            LCDAction("Shut down Pi",  LCDAction.ACTION_SHUT_DOWN)])
+        pageList.append(lastPage)
 
         menudata = menuData(pageList)
 

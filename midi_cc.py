@@ -3,13 +3,11 @@
 #
 import json
 
-
-
-
 class MidiCC:
     """
     Being a thing what encapsulates the name of a drum kit, and the corresponding MIDI Control Code.
-    Also has a utility method to parse this data from a JSON file. (Said file contains other crap, too....)
+    Also has a utility method to parse this data from a JSON file. 
+    (Said file contains other crap, too; see below for its structure.)
     """
 
     # dictionary keys
@@ -50,9 +48,12 @@ class MidiCC:
 
 
 # Test code.
-# The input file should look something like this,
-#  a list of lists of tuples of a string (the kit name) and an integer (the MIDI control code).
+# The input file should look something like this:
+#  a list of
+#    a string (the page title), followed by
+#    a list of tuples of: a string (the kit name) and an integer (the MIDI control code).
 #
+# such as:
 # [
 #   [
 #     "Rock kits",
