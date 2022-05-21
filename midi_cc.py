@@ -3,6 +3,12 @@
 #
 import json
 
+
+# dictionary keys
+SET_NAME     = "setname"
+CC_LIST_NAME = "ccdata"
+
+
 class MidiCC:
     """
     Being a thing what encapsulates the name of a drum kit, and the corresponding MIDI Control Code.
@@ -22,14 +28,21 @@ class MidiCC:
     @staticmethod
     def decodeFromJSON(s):
         """
-        Load the JSON data (in the form of a string) into a list of lists of MidiCC objects.
+        Load the JSON data from the given string.
+        The first item in each list is a string - the name of the set of objects.
+        The second item in each list is a list of kit names and control codes.
+        Returns a list of dictionary items: SET_NAME, and CC_LIST_NAME which is a list of CC objects.
         """
         result = []
-        for i in json.loads(s):
-            sublist = []
-            result.append(sublist)
-            for k in i:
-                sublist.append(MidiCC(k[0], k[1]))
+        for pagedata in json.loads(s): # "pagedata" is a string followed by a list of CC objects.
+            resultdict = {}
+            resultdict[SET_NAME] = pagedata[0]
+            cclist = pagedata[1]
+            ccresult = []
+            for k in cclist:
+                ccresult.append(MidiCC(k[0], k[1]))
+            resultdict[CC_LIST_NAME] = ccresult
+            result.append(resultdict)
         return result
 
 
@@ -38,17 +51,18 @@ class MidiCC:
 #  a list of lists of tuples of a string (the kit name) and an integer (the MIDI control code).
 #
 # [
-# [
-#   ["Rock01", 57], ["Rock02", 58], ["Rock03", 59], ["Rock04", 60], ["Rock05", 61], ["Rock06", 62]
-# ],
-# [
-#  ["Techno01", 78], ["Techno02", 79], ["Techno03", 80], ["Techno04", 81], ["Techno05", 82],
-#  ["Techno06", 83], ["Techno07", 84], ["Techno08", 85], ["Techno09", 86]
-# ],
+#   [
+#     "Rock kits",
+#     [["Rock01", 57], ["Rock02", 58], ["Rock03", 59], ["Rock04", 60], ["Rock05", 61], ["Rock06", 62]]
+#   ],
+#   [
+#     "Techno kits",
+#     [["Techno01", 78], ["Techno02", 79], ["Techno03", 80], ["Techno04", 81], ["Techno05", 82]]
+#   ]
 # ]
 #
 if __name__ =="__main__":
-    filename = "sr18_small_example.json"
+    filename = "sr18_small_example-2.json"
     print(f"Testing parsing JSON file '{filename}'....")
     f = open(filename, "r")
     fcontents = f.read()
