@@ -1,9 +1,10 @@
 #!/bin/python3
-# Micro MIDI controller for the SR16/18
+# Micro MIDI meta-controller for the SR16/18
 # Uses my LCDMenu code for the display.
+# See https://github.com/RobCranfill/piAlesisSR for more info.
 # (c)2022 robcranfill@robcranfill.net
 
-from lcd_menu import LCDMenu, menuPage, menuData
+from lcd_menu import LCDMenu, LCDMenuPage, LCDMenuData
 from midi_cc import MidiCC
 
 import mido
@@ -19,7 +20,7 @@ MIDI_INTERFACE_NAME = "MidiSport 1x1 MIDI 1"
 _MIDIport = None # global midi output port
 
 
-class LCDAction():
+class MyAction():
     """
     A somewhat ad-hoc class for implementing action-y menu items.
     This could have been done more simply, using a String object, I suppose.
@@ -33,7 +34,7 @@ class LCDAction():
         self.magicActionThing = magicActionThing
 
     def __str__(self):
-        """This is the method that the menu code will use to render each item.
+        """This is the method that the menu code will use to render this action.
         """
         return self.displayString
 
@@ -42,6 +43,9 @@ class LCDAction():
 
 
 def tidyUp():
+    """
+    Will be called on exit, normal or otherwise.
+    """
     _menu.clearScreen()
     _menu.turnOffBacklight()
 
@@ -68,7 +72,7 @@ def changeProgram(program):
     Uses the global _MIDIport
     """
     global _MIDIport
-    msg = mido.Message('program_change', channel=DM_MIDI_CHANNEL, program=program)
+    msg = mido.Message("program_change", channel=DM_MIDI_CHANNEL, program=program)
     print(f"Sending {msg}....")
     _MIDIport.send(msg)
 
@@ -84,7 +88,7 @@ def loadFile(filename):
     for page in oldstyle:
         name = page[MidiCC.SET_NAME]
         list = page[MidiCC.CC_LIST_NAME]
-        pages.append(menuPage(name, list))
+        pages.append(LCDMenuPage(name, list))
     return pages
 
 
@@ -93,21 +97,21 @@ def callbackHandler(menu_obj):
     This is the method that will be invoked when the "do it" button is pressed.
     """
 
-    if isinstance(menu_obj, LCDAction):
-        if (menu_obj.magicActionThing == LCDAction.ACTION_EXIT):
+    if isinstance(menu_obj, MyAction):
+        if (menu_obj.magicActionThing == MyAction.ACTION_EXIT):
             print("Exiting....")
             tidyUp()
-            sys.exit(LCDAction.ACTION_EXIT)
-        elif menu_obj.magicActionThing == LCDAction.ACTION_SHUT_DOWN:
+            sys.exit(MyAction.ACTION_EXIT)
+        elif menu_obj.magicActionThing == MyAction.ACTION_SHUT_DOWN:
             print("Halting system....")
             tidyUp()
-            os.system('sudo shutdown -h now')
+            os.system("sudo shutdown -h now")
         else:
             print("Unknown action: ", menu_obj) # shouldn't happen
         return
     
     # Must be a MIDI object; send it.
-    print(f"callbackHandler: '{menu_obj.kitName}', CC {menu_obj.controlCode}")
+    print(f"Send MIDI control code: '{menu_obj.kitName}', CC {menu_obj.controlCode}")
     if  _MIDIport:
         changeProgram(menu_obj.controlCode)
 
@@ -116,7 +120,7 @@ def callbackHandler(menu_obj):
 def gotSIGWhatever(foo, fum):
     # If we get the signal, create an EXIT action.
     print("Got SIGUSR1 - exiting....")
-    callbackHandler(LCDAction("mox nix", LCDAction.ACTION_EXIT))
+    callbackHandler(MyAction("mox nix", MyAction.ACTION_EXIT))
 
 
 # Main code
@@ -129,12 +133,12 @@ if __name__ == "__main__":
         pageList = loadFile("sr18_small_example.json")
 
         # A final utility page to control the app.
-        lastPage = menuPage("Utils", 
-            [LCDAction("Exit menu app", LCDAction.ACTION_EXIT),
-            LCDAction("Shut down Pi",  LCDAction.ACTION_SHUT_DOWN)])
+        lastPage = LCDMenuPage("Utils", 
+            [MyAction("Exit menu app", MyAction.ACTION_EXIT),
+             MyAction("Shut down Pi",  MyAction.ACTION_SHUT_DOWN)])
         pageList.append(lastPage)
 
-        menudata = menuData(pageList)
+        menudata = LCDMenuData(pageList)
 
         _menu = LCDMenu(menudata, callbackHandler, buttonsOnRight=True)
         init_midi()
